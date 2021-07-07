@@ -25,6 +25,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bodyParser = __importStar(require("body-parser"));
 const express_1 = __importDefault(require("express"));
 const lodash_1 = __importDefault(require("lodash"));
+const cors_1 = __importDefault(require("cors"));
 const blockchain_1 = require("./blockchain");
 const p2p_1 = require("./p2p");
 const transactionPool_1 = require("./transactionPool");
@@ -33,6 +34,7 @@ const httpPort = 3001;
 const p2pPort = 6001;
 const initHttpServer = (myHttpPort) => {
     const app = express_1.default();
+    app.use(cors_1.default());
     app.use(bodyParser.json());
     //this is just for a server error
     /*

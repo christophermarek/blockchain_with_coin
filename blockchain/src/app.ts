@@ -1,20 +1,23 @@
 import * as  bodyParser from 'body-parser';
 import express from 'express';
 import _ from 'lodash';
+import cors from 'cors';
+
 import {
     Block, generateNextBlock, generatenextBlockWithTransaction, generateRawNextBlock, getAccountBalance,
     getBlockchain, getMyUnspentTransactionOutputs, getUnspentTxOuts, sendTransaction
 } from './blockchain';
-import {connectToPeers, getSockets, initP2PServer} from './p2p';
-import {UnspentTxOut} from './transaction';
-import {getTransactionPool} from './transactionPool';
-import {getPublicFromWallet, initWallet} from './wallet';
+import { connectToPeers, getSockets, initP2PServer } from './p2p';
+import { UnspentTxOut } from './transaction';
+import { getTransactionPool } from './transactionPool';
+import { getPublicFromWallet, initWallet } from './wallet';
 
 const httpPort: number = 3001;
 const p2pPort: number = 6001;
 
 const initHttpServer = (myHttpPort: number) => {
     const app = express();
+    app.use(cors());
     app.use(bodyParser.json());
 
     //this is just for a server error
@@ -31,7 +34,7 @@ const initHttpServer = (myHttpPort: number) => {
     });
 
     app.get('/block/:hash', (req, res) => {
-        const block = _.find(getBlockchain(), {'hash' : req.params.hash});
+        const block = _.find(getBlockchain(), { 'hash': req.params.hash });
         res.send(block);
     });
 
@@ -39,14 +42,14 @@ const initHttpServer = (myHttpPort: number) => {
         const tx = _(getBlockchain())
             .map((blocks: { data: any; }) => blocks.data)
             .flatten()
-            .find({'id': req.params.id});
+            .find({ 'id': req.params.id });
         res.send(tx);
     });
 
     app.get('/address/:address', (req, res) => {
         const unspentTxOuts: UnspentTxOut[] =
             _.filter(getUnspentTxOuts(), (uTxO) => uTxO.address === req.params.address);
-        res.send({'unspentTxOuts': unspentTxOuts});
+        res.send({ 'unspentTxOuts': unspentTxOuts });
     });
 
     app.get('/unspentTransactionOutputs', (req, res) => {
@@ -81,12 +84,12 @@ const initHttpServer = (myHttpPort: number) => {
 
     app.get('/balance', (req, res) => {
         const balance: number = getAccountBalance();
-        res.send({'balance': balance});
+        res.send({ 'balance': balance });
     });
 
     app.get('/address', (req, res) => {
         const address: string = getPublicFromWallet();
-        res.send({'address': address});
+        res.send({ 'address': address });
     });
 
     app.post('/mineTransaction', (req, res) => {
@@ -130,7 +133,7 @@ const initHttpServer = (myHttpPort: number) => {
     });
 
     app.post('/stop', (req, res) => {
-        res.send({'msg' : 'stopping server'});
+        res.send({ 'msg': 'stopping server' });
         process.exit();
     });
 
