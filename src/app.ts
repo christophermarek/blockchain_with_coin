@@ -1,6 +1,6 @@
 import * as  bodyParser from 'body-parser';
 import express from 'express';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import {
     Block, generateNextBlock, generatenextBlockWithTransaction, generateRawNextBlock, getAccountBalance,
     getBlockchain, getMyUnspentTransactionOutputs, getUnspentTxOuts, sendTransaction
@@ -17,11 +17,14 @@ const initHttpServer = (myHttpPort: number) => {
     const app = express();
     app.use(bodyParser.json());
 
-    app.use((err, req, res, next) => {
+    //this is just for a server error
+    /*
+    app.use((err: { message: any; }, req: any, res: { status: (arg0: number) => { (): any; new(): any; send: { (arg0: any): void; new(): any; }; }; }, next: any) => {
         if (err) {
             res.status(400).send(err.message);
         }
     });
+    */
 
     app.get('/blocks', (req, res) => {
         res.send(getBlockchain());
@@ -34,7 +37,7 @@ const initHttpServer = (myHttpPort: number) => {
 
     app.get('/transaction/:id', (req, res) => {
         const tx = _(getBlockchain())
-            .map((blocks) => blocks.data)
+            .map((blocks: { data: any; }) => blocks.data)
             .flatten()
             .find({'id': req.params.id});
         res.send(tx);
@@ -59,7 +62,7 @@ const initHttpServer = (myHttpPort: number) => {
             res.send('data parameter is missing');
             return;
         }
-        const newBlock: Block = generateRawNextBlock(req.body.data);
+        const newBlock: Block | null = generateRawNextBlock(req.body.data);
         if (newBlock === null) {
             res.status(400).send('could not generate block');
         } else {
@@ -68,7 +71,7 @@ const initHttpServer = (myHttpPort: number) => {
     });
 
     app.post('/mineBlock', (req, res) => {
-        const newBlock: Block = generateNextBlock();
+        const newBlock: Block | null = generateNextBlock();
         if (newBlock === null) {
             res.status(400).send('could not generate block');
         } else {

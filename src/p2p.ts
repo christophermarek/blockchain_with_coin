@@ -1,11 +1,8 @@
-import * as WebSocket from 'ws';
-import {Server} from 'ws';
-import {
-    addBlockToChain, Block, getBlockchain, getLatestBlock, handleReceivedTransaction, isValidBlockStructure,
-    replaceChain
-} from './blockchain';
-import {Transaction} from './transaction';
-import {getTransactionPool} from './transactionPool';
+import WebSocket from 'ws';
+import { Server } from 'ws';
+import { addBlockToChain, Block, getBlockchain, getLatestBlock, handleReceivedTransaction, isValidBlockStructure, replaceChain } from './blockchain';
+import { Transaction } from './transaction';
+import { getTransactionPool } from './transactionPool';
 
 const sockets: WebSocket[] = [];
 
@@ -18,12 +15,12 @@ enum MessageType {
 }
 
 class Message {
-    public type: MessageType;
+    public type!: MessageType;
     public data: any;
 }
 
 const initP2PServer = (p2pPort: number) => {
-    const server: Server = new WebSocket.Server({port: p2pPort});
+    const server: Server = new WebSocket.Server({ port: p2pPort });
     server.on('connection', (ws: WebSocket) => {
         initConnection(ws);
     });
@@ -44,7 +41,7 @@ const initConnection = (ws: WebSocket) => {
     }, 500);
 };
 
-const JSONToObject = <T>(data: string): T => {
+const JSONToObject = <T>(data: string): T | null => {
     try {
         return JSON.parse(data);
     } catch (e) {
@@ -57,7 +54,7 @@ const initMessageHandler = (ws: WebSocket) => {
     ws.on('message', (data: string) => {
 
         try {
-            const message: Message = JSONToObject<Message>(data);
+            const message: Message | null = JSONToObject<Message>(data);
             if (message === null) {
                 console.log('could not parse received JSON message: ' + data);
                 return;
@@ -71,7 +68,7 @@ const initMessageHandler = (ws: WebSocket) => {
                     write(ws, responseChainMsg());
                     break;
                 case MessageType.RESPONSE_BLOCKCHAIN:
-                    const receivedBlocks: Block[] = JSONToObject<Block[]>(message.data);
+                    const receivedBlocks: Block[] | null = JSONToObject<Block[]>(message.data);
                     if (receivedBlocks === null) {
                         console.log('invalid blocks received: %s', JSON.stringify(message.data));
                         break;
@@ -82,7 +79,7 @@ const initMessageHandler = (ws: WebSocket) => {
                     write(ws, responseTransactionPoolMsg());
                     break;
                 case MessageType.RESPONSE_TRANSACTION_POOL:
-                    const receivedTransactions: Transaction[] = JSONToObject<Transaction[]>(message.data);
+                    const receivedTransactions: Transaction[] | null = JSONToObject<Transaction[]>(message.data);
                     if (receivedTransactions === null) {
                         console.log('invalid transaction received: %s', JSON.stringify(message.data));
                         break;
@@ -108,9 +105,9 @@ const initMessageHandler = (ws: WebSocket) => {
 const write = (ws: WebSocket, message: Message): void => ws.send(JSON.stringify(message));
 const broadcast = (message: Message): void => sockets.forEach((socket) => write(socket, message));
 
-const queryChainLengthMsg = (): Message => ({'type': MessageType.QUERY_LATEST, 'data': null});
+const queryChainLengthMsg = (): Message => ({ 'type': MessageType.QUERY_LATEST, 'data': null });
 
-const queryAllMsg = (): Message => ({'type': MessageType.QUERY_ALL, 'data': null});
+const queryAllMsg = (): Message => ({ 'type': MessageType.QUERY_ALL, 'data': null });
 
 const responseChainMsg = (): Message => ({
     'type': MessageType.RESPONSE_BLOCKCHAIN, 'data': JSON.stringify(getBlockchain())
@@ -188,4 +185,4 @@ const broadCastTransactionPool = () => {
     broadcast(responseTransactionPoolMsg());
 };
 
-export {connectToPeers, broadcastLatest, broadCastTransactionPool, initP2PServer, getSockets};
+export { connectToPeers, broadcastLatest, broadCastTransactionPool, initP2PServer, getSockets };

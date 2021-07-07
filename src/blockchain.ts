@@ -1,12 +1,10 @@
-import * as CryptoJS from 'crypto-js';
-import * as _ from 'lodash';
-import {broadcastLatest, broadCastTransactionPool} from './p2p';
-import {
-    getCoinbaseTransaction, isValidAddress, processTransactions, Transaction, UnspentTxOut
-} from './transaction';
-import {addToTransactionPool, getTransactionPool, updateTransactionPool} from './transactionPool';
-import {hexToBinary} from './util';
-import {createTransaction, findUnspentTxOuts, getBalance, getPrivateFromWallet, getPublicFromWallet} from './wallet';
+import CryptoJS from 'crypto-js';
+import _ from 'lodash';
+import { broadcastLatest, broadCastTransactionPool } from './p2p';
+import { getCoinbaseTransaction, isValidAddress, processTransactions, Transaction, UnspentTxOut } from './transaction';
+import { addToTransactionPool, getTransactionPool, updateTransactionPool } from './transactionPool';
+import { hexToBinary } from './utils';
+import { createTransaction, findUnspentTxOuts, getBalance, getPrivateFromWallet, getPublicFromWallet } from './wallet';
 
 class Block {
 
@@ -19,7 +17,7 @@ class Block {
     public nonce: number;
 
     constructor(index: number, hash: string, previousHash: string,
-                timestamp: number, data: Transaction[], difficulty: number, nonce: number) {
+        timestamp: number, data: Transaction[], difficulty: number, nonce: number) {
         this.index = index;
         this.previousHash = previousHash;
         this.timestamp = timestamp;
@@ -31,7 +29,7 @@ class Block {
 }
 
 const genesisTransaction = {
-    'txIns': [{'signature': '', 'txOutId': '', 'txOutIndex': 0}],
+    'txIns': [{ 'signature': '', 'txOutId': '', 'txOutIndex': 0 }],
     'txOuts': [{
         'address': '04bfcab8722991ae774db48f934ca79cfb7dd991229153b9f732ba5334aafcd8e7266e47076996b55a14bf9913ee3145ce0cfc1372ada8ada74bd287450313534a',
         'amount': 50
@@ -46,7 +44,14 @@ const genesisBlock: Block = new Block(
 let blockchain: Block[] = [genesisBlock];
 
 // the unspent txOut of genesis block is set to unspentTxOuts on startup
-let unspentTxOuts: UnspentTxOut[] = processTransactions(blockchain[0].data, [], 0);
+let tempUnspentOuts: UnspentTxOut[] | null = processTransactions(blockchain[0].data, [], 0);
+let unspentTxOuts: UnspentTxOut[];
+if (tempUnspentOuts != null) {
+    unspentTxOuts = tempUnspentOuts;
+} else {
+    console.log('error processing unspent transactions');
+    //should i crash the node?
+}
 
 const getBlockchain = (): Block[] => blockchain;
 
@@ -155,7 +160,7 @@ const calculateHashForBlock = (block: Block): string =>
     calculateHash(block.index, block.previousHash, block.timestamp, block.data, block.difficulty, block.nonce);
 
 const calculateHash = (index: number, previousHash: string, timestamp: number, data: Transaction[],
-                       difficulty: number, nonce: number): string =>
+    difficulty: number, nonce: number): string =>
     CryptoJS.SHA256(index + previousHash + timestamp + data + difficulty + nonce).toString();
 
 const isValidBlockStructure = (block: Block): boolean => {
@@ -194,7 +199,7 @@ const getAccumulatedDifficulty = (aBlockchain: Block[]): number => {
 };
 
 const isValidTimestamp = (newBlock: Block, previousBlock: Block): boolean => {
-    return ( previousBlock.timestamp - 60 < newBlock.timestamp )
+    return (previousBlock.timestamp - 60 < newBlock.timestamp)
         && newBlock.timestamp - 60 < getCurrentTimestamp();
 };
 
@@ -216,16 +221,22 @@ const hashMatchesBlockContent = (block: Block): boolean => {
     return blockHash === block.hash;
 };
 
-const hashMatchesDifficulty = (hash: string, difficulty: number): boolean => {
-    const hashInBinary: string = hexToBinary(hash);
-    const requiredPrefix: string = '0'.repeat(difficulty);
-    return hashInBinary.startsWith(requiredPrefix);
+const hashMatchesDifficulty = (hash: string, difficulty: number): boolean | null => {
+    let tempHashInBinary: string | null = hexToBinary(hash);
+    if(tempHashInBinary != null){
+        const hashInBinary: string = tempHashInBinary;
+        const requiredPrefix: string = '0'.repeat(difficulty);
+        return hashInBinary.startsWith(requiredPrefix);
+    }else{
+        return null;
+    }
+    
 };
 
 /*
     Checks if the given blockchain is valid. Return the unspent txOuts if the chain is valid
  */
-const isValidChain = (blockchainToValidate: Block[]): UnspentTxOut[] => {
+const isValidChain = (blockchainToValidate: Block[]): UnspentTxOut[] | null => {
     console.log('isValidChain:');
     console.log(JSON.stringify(blockchainToValidate));
     const isValidGenesis = (block: Block): boolean => {
@@ -239,7 +250,7 @@ const isValidChain = (blockchainToValidate: Block[]): UnspentTxOut[] => {
     Validate each block in the chain. The block is valid if the block structure is valid
       and the transaction are valid
      */
-    let aUnspentTxOuts: UnspentTxOut[] = [];
+    let aUnspentTxOuts: UnspentTxOut[] | null = [];
 
     for (let i = 0; i < blockchainToValidate.length; i++) {
         const currentBlock: Block = blockchainToValidate[i];
@@ -258,7 +269,7 @@ const isValidChain = (blockchainToValidate: Block[]): UnspentTxOut[] => {
 
 const addBlockToChain = (newBlock: Block): boolean => {
     if (isValidNewBlock(newBlock, getLatestBlock())) {
-        const retVal: UnspentTxOut[] = processTransactions(newBlock.data, getUnspentTxOuts(), newBlock.index);
+        const retVal: UnspentTxOut[] | null = processTransactions(newBlock.data, getUnspentTxOuts(), newBlock.index);
         if (retVal === null) {
             console.log('block is not valid in terms of transactions');
             return false;
@@ -275,8 +286,7 @@ const addBlockToChain = (newBlock: Block): boolean => {
 const replaceChain = (newBlocks: Block[]) => {
     const aUnspentTxOuts = isValidChain(newBlocks);
     const validChain: boolean = aUnspentTxOuts !== null;
-    if (validChain &&
-        getAccumulatedDifficulty(newBlocks) > getAccumulatedDifficulty(getBlockchain())) {
+    if (validChain && getAccumulatedDifficulty(newBlocks) > getAccumulatedDifficulty(getBlockchain()) && aUnspentTxOuts != null) {
         console.log('Received blockchain is valid. Replacing current blockchain with received blockchain');
         blockchain = newBlocks;
         setUnspentTxOuts(aUnspentTxOuts);
