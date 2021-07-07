@@ -9,7 +9,7 @@ interface block {
       id: string
       txIns: [
         {
-          signature: string 
+          signature: string
           txOutId: string
           txOutIndex: number
         }
@@ -43,12 +43,13 @@ function App() {
     } catch (error) {
       console.error(error);
       setBlockChain([]);
+
     }
   }
 
   return (
     <div className="App">
-      <p>Hello</p>
+      <p>BlockChain Explorer</p>
       <input type='button' value='Get BlockChain' onClick={() => getBlockChain()} />
 
       {blockChain.length < 1 ?
@@ -57,7 +58,24 @@ function App() {
         )
         :
         (
-          true
+          blockChain.map((block: block, index: number) => (
+            <div key={index}>
+              <p>Block #{index}</p>
+              <div className='container'>
+                <div className='titles'>
+                  <p>Hash</p>
+                  <p>Previous Hash</p>
+                  <p>Timestamp</p>
+                  <p>Difficulty</p>
+                  <p>Nonce</p>
+                  <p>Number of transactions</p>
+                </div>
+                <div className='values'>
+
+                </div>
+              </div>
+            </div>
+          ))
         )
       }
     </div>
