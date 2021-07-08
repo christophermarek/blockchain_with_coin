@@ -34,6 +34,7 @@ interface block {
 function App() {
 
   const [blockChain, setBlockChain] = useState<Array<block>>([]);
+  const [blockToSearch, setBlockToSearch] = useState<string>('');
 
   useEffect(() => {
 
@@ -45,19 +46,21 @@ function App() {
       } catch (error) {
         console.error(error);
         setBlockChain([]);
-  
       }
     }
 
     getBlockChain();
-
   });
-
-  
 
   return (
     <div className="App">
       <p>BlockChain Explorer</p>
+
+      <div className='searchBlockForm'>
+        <p>Search block</p>
+        <input type='text' value={blockToSearch} onChange={(e) => setBlockToSearch(e.target.value)} placeholder={'enter a block to search'} />
+        <input type='button' onClick={() => true} value={'seasrch'} />
+      </div>
 
       {blockChain.length < 1 ?
         (
